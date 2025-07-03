@@ -4,28 +4,38 @@ on:
     branches:
       - main
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    outputs:
-      js-filename: ${{ steps.publish.outputs.js-filename }}
     steps:
       - name: Get code
         uses: actions/checkout@v3
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
         run: npm ci
       - name: Build website
         run: npm run build
-      - name: Publish JS filename
-        id: publish
-        run: find dist/assets/*.js -type f -execdir echo 'js-filename={}' >> $GITHUB_OUTPUT ';' 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: website-build
           path: dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Output JS filename
-        run: echo "${{ needs.build.outputs.js-filename }}"
+
+
